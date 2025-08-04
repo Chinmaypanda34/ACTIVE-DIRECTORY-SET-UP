@@ -23,7 +23,7 @@
 
       (*)Windows 10 workstations
 
-      (*)Ubuntu desktop joined to domain
+      (*)The Ubuntu desktop joined the domain
 
  5:-Kali Attacker: Separate machine on the same network
 
@@ -182,7 +182,7 @@
      
              search pentest.lab
 
-  5. after this now its time for DC joining
+  5. After this, now it's time for DC joining
 
          -> sudo apt-get update
      
@@ -192,9 +192,9 @@
                                        
          -> sudo realm join --user=administrator PENTEST.LAB
 
-         -> If It Succeeds, You’ll See No Output or Just Successfully enrolled machine (for confirm type [ realm list ]
+         -> If It Succeeds, you’ll See No Output or just a successfully enrolled machine (for confirmation type [ realm list ]
 
-         -> last test :- nslookup pentest.lab , dig +short pentest.lab   (check its working or not )
+         -> last test :- nslookup pentest.lab, dig + short pentest.lab   (check its working or not )
 
      HELL YEAH 🔥 Boom!
 
@@ -206,11 +206,11 @@
 
 **6. AD Object Creation (OUs & Users)**
 
-      1.Steps & Commands: In powershell run as admin..  and run
+      1. Steps & Commands: In PowerShell, run as admin..  and run
 
         -> New-ADOrganizationalUnit -Name "LAB_Assets" \
 
-        -> New-ADOrganizationalUnit -Name "Workstations" -Path "OU=LAB_Assets,DC=pentest,DC=lab" \
+        -> New-ADOrganizationalUnit -Name "Workstations" -Path "OU=LAB_Assets, DC=pentest, DC=lab" \
 
         -> New-ADUser -Name "ADM_John" -SamAccountName jadm … -Enabled $true \
 
@@ -219,7 +219,7 @@
         -> New-ADUser -Name "USER_Sarah" -SamAccountName sarah … -Enabled $true \
 
 
-  2. we can follow any youtube vedio for  crate (OU & User) here is steps to create:-
+  2. We can follow any YouTube video to create (OU & User). Here are the  steps to create:-
 
       <img width="1029" height="777" alt="Screenshot 2025-07-30 003854" src="https://github.com/user-attachments/assets/5f0742e9-7486-4fc0-b3c3-a354667a99ee" />
       <img width="1027" height="781" alt="Screenshot 2025-07-30 004027" src="https://github.com/user-attachments/assets/fa03645c-239e-487c-b60c-8eda9c1309f8" />
@@ -263,6 +263,7 @@
      11.	Each will list the SRV record’s properties (priority, weight, port, and target).
 
 
+  
   **2. Time Synchronization**
 
     Why?
@@ -313,6 +314,116 @@
 <img width="1026" height="775" alt="Screenshot 2025-07-30 010704" src="https://github.com/user-attachments/assets/9efa0052-ea09-4c9e-bef2-4aca25a7c9ba" />
 
 
-     
+
+
+**3. Install RSAT on WIN10 ADM**
+
+     why?
+     RSAT (Remote Server Administration Tools) lets you manage AD (users, computers, DNS, GPOs, etc.) directly from your Windows 10 client, without logging into the DC.
+     Steps on WIN10 ADM: 
+
+    1.	Log In
+	Sign in to WIN10 ADM using a Domain Admin account (e.g., PENTEST\ADM_john or PENTEST\Administrator).
+ 
+    2.	Open Settings
+	Press Windows Key → click Settings (gear icon).
+ 
+    3.	Navigate to Optional Features
+	Click Apps → on the right side, click Optional features.
+ 
+    4.	Add a Feature
+	Click Add a feature at the top.
+ 
+    5.	Search for RSAT
+	In the search box, type RSAT.
+	Locate “RSAT: Active Directory Domain Services and Lightweight Directory Tools”.
+ 
+    6.	Install RSAT
+	Check the box next to it.
+	Click Install.
+	Wait a few moments while Windows downloads and installs the feature.
+ 
+    7.	Verify Installation
+	After installation completes, press Windows Key, type Active Directory Users and Computers, and press Enter.
+	If the ADUC console opens, RSAT is installed successfully.
+        (we use NAT FOR INSTALLATION)
+
+<img width="1020" height="770" alt="Screenshot 2025-07-30 010746" src="https://github.com/user-attachments/assets/b5c1640c-e72e-4c13-a02c-2f5b9a7d3bf8" />
+
+
+**4: Test Kerberos Ticket**
+
+    why?
+    Kerberos is the authentication protocol AD uses. Testing Kerberos tickets ensures your client can properly authenticate with the Domain Controller.
+    where:-
+    On your Ubuntu Desktop (or Kali, once it’s up)—any Linux client with Kerberos tools installed.
+
+    1.	Open a Terminal
+    
+    2.	Obtain a Kerberos Ticket (TGT)
+        type :- kinit administrator@PENTEST.LAB
+	o	You’ll be prompted for the Administrator password (e.g., P@ssw0rd!DC).
+        o	Successful: No output; you return to the prompt.
+        o	Failure: Errors like “KDC unreachable” indicate DNS, network, or firewall issues.
+
+    3.  List Your Tickets
+        type:- klist
+	o	What to see: 
+        Ticket cache: FILE:/tmp/krb5cc_1000
+     o	The krbtgt line shows you’ve a valid Ticket Granting Ticket (TGT) for the realm.
+ 
+ <img width="1268" height="800" alt="Screenshot 2025-07-30 012018" src="https://github.com/user-attachments/assets/7a7aaa35-cde0-4817-90c3-75e26a27babc" />
+
+ 
+
+ **5: Test LDAP Bind**
+
+    why?
+    Verifying an LDAP bind shows your client can authenticate to and query Active Directory over the LDAP protocol (port 389). This is fundamental for many AD tools and services.
+    where:-
+    On your Ubuntu Desktop (or Kali) with ldap-utils installed.
+
+    1. Install LDAP Utilities
+       If not already installed, run: sudo apt update , sudo apt install ldap-utils -y 
+
+    2. Perform the LDAP Search:-
+       In the terminal, run:-
+       ldapsearch -x -LLL \
+      -H ldap://10.0.0.100 \
+      -D administrator@pentest.lab \
+      -W \
+      -b "DC=pentest,DC=lab" \
+      "(objectClass=user)" \
+      cn
+      ((!! Be careful with cmd's 🤐🤐)
+
+       -H specifies the LDAP URI (unencrypted).
+       -D is the bind DN (distinguished name) of the account.
+       -w is the password in plain text.
+       -b is the search base in DN format.
+       "(objectClass=user)" filters for user objects.
+       cn outputs only the Common Name attribute.
+   
+    3. What to Watch For:-
+       Password Prompt: After you hit Enter, you’ll be asked for your AD admin password.
+       then the o/p is like:- 
+       dn: CN=ADM_John,OU=Users,OU=LAB_Assets,DC=pentest,DC=lab
+       cn: ADM_John
+       dn: CN=USER_Sarah,OU=Users,OU=LAB_Assets,DC=pentest,DC=lab
+       cn: USER_Sarah
+
+       
+
+  **6:  Configure a Simple GPO (Map a Network Drive)**
+
+     Why?
+     Practice creating and linking a Group Policy so your Workstations automatically map a shared drive at user logon.
+     where:- 
+     On DC-01, in the Group Policy Management Console (GPMC).
+     (*) I strongly recommend use  this YouTube video as a reference, because I also faced some problems while creating a share drive.
+     (*) https://youtu.be/Gm-jE_4E7Y0?si=EGPmTdYSVWFSMQ6C  (give all permission to Domain users)
+     (*) If everything is okay, you can access the drive(share) from everywhere like example :- In ubuntu 
+
+  <img width="801" height="580" alt="Screenshot 2025-07-30 012102" src="https://github.com/user-attachments/assets/887b0d17-cfbd-46cb-b899-6f7c78d728c1" />
 
 
